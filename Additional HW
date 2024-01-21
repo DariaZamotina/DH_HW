@@ -1,0 +1,33 @@
+import requests
+from bs4 import BeautifulSoup
+import sqlite3
+from cords import cords
+
+BASE_URL = "https://xn--c1adjbaairkmgqoa.xn--p1ai/camping/kempingi-leningradskoy-oblasti"
+
+cords()
+
+db = sqlite3.connect("hotels.db")
+cur = db.cursor()
+cur.execute("CREATE TABLE IF NOT EXISTS hotels (names TEXT, cords TEXT, address TEXT)")
+
+with open("results.txt", "r", encoding="utf-8") as file:
+      cords_list = []
+      for line in file:
+            cords_list.append(line.strip())
+
+response = requests.get(BASE_URL)
+soup = BeautifulSoup(response.content, 'html.parser')
+
+hotels = soup.find_all(class_="row product-item-list-col-1")
+
+for i, hotel in enumerate(hotels):
+    hotel_name = hotel.find(class_="wrapper").find("h3").text
+    address = hotel.find(class_="adress").text
+    cords_data = cords_list[i]
+
+    # Inserting data into the database
+    cur.execute("INSERT INTO hotels (names, cords, address) VALUES (?, ?, ?)", (hotel_name, cords_data, address))
+    db.commit()
+
+db.close()
